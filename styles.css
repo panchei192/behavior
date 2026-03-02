@@ -316,7 +316,6 @@ footer {
 @media (max-width: 768px) {
     .nav-links {
         display: none;
-        /* simple hidden for mobile MVP */
     }
 
     .hero h1 {
@@ -326,4 +325,233 @@ footer {
     .container {
         padding: 0 1.5rem;
     }
+}
+
+/* =============================================
+   CART ICON BUTTON (header)
+   ============================================= */
+.cart-icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    font-family: var(--font-body);
+    letter-spacing: 0.5px;
+    color: var(--primary-color);
+    padding: 0;
+    transition: opacity 0.2s;
+}
+
+.cart-icon-btn:hover {
+    opacity: 0.6;
+}
+
+/* =============================================
+   CART OVERLAY
+   ============================================= */
+.cart-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1100;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.cart-overlay.open {
+    display: block;
+    opacity: 1;
+}
+
+/* =============================================
+   CART SIDEBAR
+   ============================================= */
+.cart-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 400px;
+    max-width: 100vw;
+    height: 100vh;
+    background: #ffffff;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -4px 0 30px rgba(0, 0, 0, 0.12);
+}
+
+.cart-sidebar.open {
+    transform: translateX(0);
+}
+
+.cart-sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 1.8rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.cart-sidebar-header h3 {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.cart-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--primary-color);
+    line-height: 1;
+    padding: 0.2rem 0.4rem;
+    transition: opacity 0.2s;
+}
+
+.cart-close-btn:hover {
+    opacity: 0.5;
+}
+
+/* Cart items list */
+.cart-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 1.8rem;
+}
+
+.cart-empty {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    text-align: center;
+    margin-top: 3rem;
+}
+
+.cart-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.cart-item-img {
+    width: 64px;
+    height: 80px;
+    object-fit: cover;
+    background: var(--secondary-background);
+    flex-shrink: 0;
+}
+
+.cart-item-details {
+    flex: 1;
+}
+
+.cart-item-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+}
+
+.cart-item-price {
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.cart-item-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    padding: 0.3rem;
+    transition: color 0.2s;
+}
+
+.cart-item-remove:hover {
+    color: var(--primary-color);
+}
+
+/* Cart footer */
+.cart-footer {
+    padding: 1.5rem 1.8rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.cart-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.2rem;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.checkout-btn {
+    width: 100%;
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+}
+
+.checkout-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.cart-note {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 0.8rem;
+}
+
+/* =============================================
+   SKELETON LOADING
+   ============================================= */
+@keyframes shimmer {
+    0%   { background-position: -600px 0; }
+    100% { background-position: 600px 0; }
+}
+
+.skeleton-img,
+.skeleton-text {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 600px 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 2px;
+}
+
+.skeleton-img {
+    width: 100%;
+    aspect-ratio: 3/4;
+    margin-bottom: 1rem;
+}
+
+.skeleton-text {
+    height: 14px;
+    margin-bottom: 0.7rem;
+    width: 80%;
+}
+
+.skeleton-text.short {
+    width: 40%;
+    height: 12px;
+}
+
+/* Error / empty state */
+.no-products {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-light);
+    padding: 3rem 0;
+    font-size: 0.95rem;
 }
