@@ -396,6 +396,7 @@ footer .footer-bottom {
 
 .about-modal {
     background: #fff;
+    border-radius: 12px;
     max-width: 640px;
     width: calc(100% - 3rem);
     max-height: 85vh;
@@ -871,9 +872,11 @@ footer .footer-bottom {
 
 .product-modal {
     background: #fff;
+    border-radius: 12px;
     width: 900px;
     max-width: 95%;
     max-height: 90vh;
+    overflow: hidden;
     overflow-y: auto;
     position: relative;
     display: flex;
@@ -1016,6 +1019,7 @@ footer .footer-bottom {
         max-height: 100vh;
         transform: translateY(100%);
         box-shadow: none;
+        border-radius: 16px 16px 0 0;
     }
 
     .product-modal-overlay.open .product-modal {
