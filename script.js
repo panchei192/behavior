@@ -54,7 +54,7 @@ function isRateLimited() {
 
 /** 3. PRODUCT CACHE — avoids hitting Shopify API on every page load.
  *  Version suffix invalidates old caches when query changes. */
-const CACHE_KEY = "_bhv_products_v2";   // bumped: now fetches 10 imgs + descriptionHtml
+const CACHE_KEY = "_bhv_products_v4";   // bumped to clear cache and load new size options
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 function getCachedProducts() {
@@ -122,14 +122,28 @@ const PRODUCTS_QUERY = `
           id
           title
           descriptionHtml
+          options {
+            name
+            values
+          }
           images(first: 10) {
             edges { node { url altText } }
           }
-          variants(first: 1) {
+          variants(first: 100) {
             edges {
               node {
                 id
+                title
+                selectedOptions {
+                  name
+                  value
+                }
+                image {
+                  url
+                  altText
+                }
                 price { amount currencyCode }
+                compareAtPrice { amount currencyCode }
                 availableForSale
               }
             }
@@ -198,21 +212,39 @@ function renderProducts(grid, products) {
   grid.innerHTML = products
     .map(({ node }) => {
       const img = node.images.edges[0]?.node;
-      const variant = node.variants.edges[0]?.node;
-      const price = parseFloat(variant?.price?.amount ?? 0).toFixed(2);
-      const currency = variant?.price?.currencyCode ?? "USD";
-      const available = variant?.availableForSale ?? false;
-      const variantId = variant?.id ?? "";
+      const variants = node.variants.edges.map(e => e.node);
+      const options = node.options || [];
+      const firstAvailable = variants.find(v => v.availableForSale) || variants[0];
+
+      const priceVal = firstAvailable?.price?.amount ?? 0;
+      const comparePriceVal = firstAvailable?.compareAtPrice?.amount ?? null;
+      const currency = firstAvailable?.price?.currencyCode ?? "USD";
+      const available = firstAvailable?.availableForSale ?? false;
+
+      let priceHTML = `${currency} $${parseFloat(priceVal).toFixed(2)}`;
+      if (comparePriceVal && parseFloat(comparePriceVal) > parseFloat(priceVal)) {
+        priceHTML = `<span style="text-decoration: line-through; color: #888; font-size: 0.9em; margin-right: 6px;">$${parseFloat(comparePriceVal).toFixed(2)}</span>${priceHTML}`;
+      }
+
+      const hasOptions = variants.length > 1;
+      const btnText = hasOptions ? "Select Options" : (available ? "Add to Cart" : "Sold Out");
 
       // Embed all product data as JSON for the modal
       const productData = JSON.stringify({
         title: node.title,
         descriptionHtml: node.descriptionHtml ?? "",
         images: node.images.edges.map(e => ({ url: e.node.url, alt: e.node.altText })),
-        price,
-        currency,
-        available,
-        variantId,
+        options: options,
+        variants: variants.map(v => ({
+          id: v.id,
+          title: v.title,
+          available: v.availableForSale,
+          price: v.price.amount,
+          currency: v.price.currencyCode,
+          compareAtPrice: v.compareAtPrice?.amount ?? null,
+          image: v.image ? { url: v.image.url, alt: v.image.altText } : null,
+          selectedOptions: v.selectedOptions
+        }))
       }).replace(/"/g, "&quot;");
 
       return `
@@ -226,16 +258,16 @@ function renderProducts(grid, products) {
             <div class="add-to-cart-overlay">
               <button
                 class="add-to-cart-btn btn"
-                ${!available ? "disabled" : ""}
+                ${!available && !hasOptions ? "disabled" : ""}
                 style="width:100%; padding: 0.8rem; border:none;"
               >
-                ${available ? "Add to Cart" : "Sold Out"}
+                ${btnText}
               </button>
             </div>
           </div>
           <div class="product-info">
             <h3 class="product-title">${node.title}</h3>
-            <p class="product-price">${currency} $${price}</p>
+            <p class="product-price">${priceHTML}</p>
           </div>
         </div>`;
     })
@@ -255,12 +287,25 @@ function attachCardListeners() {
       const card = btn.closest(".product-card");
       const p = JSON.parse(card.dataset.product.replace(/&quot;/g, '"'));
 
-      addToCart({ variantId: p.variantId, title: p.title, price: p.price, image: p.images[0]?.url ?? "" });
+      if (p.variants.length > 1) {
+        openProductModal(p);
+        return;
+      }
+
+      const variant = p.variants[0];
+      const variantTitle = variant.title !== "Default Title" ? ` - ${variant.title}` : "";
+
+      addToCart({
+        variantId: variant.id,
+        title: p.title + variantTitle,
+        price: variant.price,
+        image: variant.image?.url || p.images[0]?.url || ""
+      });
 
       btn.textContent = "✓ Added!";
       btn.style.background = "#2d6a4f";
       setTimeout(() => {
-        btn.textContent = "Add to Cart";
+        btn.textContent = p.variants.length > 1 ? "Select Options" : "Add to Cart";
         btn.style.background = "";
       }, 2000);
     });
@@ -373,8 +418,16 @@ async function initiateCheckout() {
       quantity: item.quantity,
     }));
 
+    const shippingRadio = document.querySelector('input[name="shipping-method"]:checked');
+    const shippingMethod = shippingRadio ? shippingRadio.value : "Envío";
+
     const data = await shopifyFetch(CHECKOUT_MUTATION, {
-      input: { lineItems },
+      input: {
+        lineItems,
+        customAttributes: [
+          { key: "Metodo de envio", value: shippingMethod }
+        ]
+      },
     });
 
     const errors = data?.data?.checkoutCreate?.checkoutUserErrors ?? [];
@@ -439,24 +492,107 @@ function openProductModal(p) {
 
   // --- Info ---
   overlay.querySelector(".pm-title").textContent = p.title;
-  overlay.querySelector(".pm-price").textContent = `${p.currency} $${p.price}`;
   overlay.querySelector(".pm-description").innerHTML = p.descriptionHtml || "<p>Sin descripci\u00f3n.</p>";
 
-  // --- Add to Cart button ---
+  const optionsContainer = overlay.querySelector(".pm-options");
+  const priceEl = overlay.querySelector(".pm-price");
   const cartBtn = overlay.querySelector(".pm-add-to-cart");
-  cartBtn.textContent = p.available ? "Add to Cart" : "Sold Out";
-  cartBtn.disabled = !p.available;
-  cartBtn.onclick = () => {
-    addToCart({ variantId: p.variantId, title: p.title, price: p.price, image: p.images[0]?.url ?? "" });
-    cartBtn.textContent = "\u2713 Added!";
-    cartBtn.style.background = "#2d6a4f";
-    cartBtn.style.borderColor = "#2d6a4f";
-    setTimeout(() => {
-      cartBtn.textContent = "Add to Cart";
-      cartBtn.style.background = "";
-      cartBtn.style.borderColor = "";
-    }, 2000);
-  };
+
+  // Create Selects for Options
+  if (p.options && p.options.length > 0 && p.options[0].name !== "Title") {
+    let optionsHTML = p.options.map((opt) => `
+        <div class="pm-option-group" style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem;">${opt.name}</label>
+            <select class="pm-option-select" data-option-name="${opt.name}" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; background: #fff; font-family: inherit; font-size: 0.95rem;">
+                ${opt.values.map(val => `<option value="${val}">${val}</option>`).join("")}
+            </select>
+        </div>
+      `).join("");
+    optionsContainer.innerHTML = optionsHTML;
+    optionsContainer.style.display = "block";
+  } else {
+    optionsContainer.innerHTML = "";
+    optionsContainer.style.display = "none";
+  }
+
+  function getSelectedVariant() {
+    if (!p.options || p.options[0].name === "Title" || p.variants.length === 1) return p.variants[0];
+
+    const selects = Array.from(optionsContainer.querySelectorAll(".pm-option-select"));
+    const selectedValues = selects.reduce((acc, sel) => {
+      acc[sel.dataset.optionName] = sel.value;
+      return acc;
+    }, {});
+
+    return p.variants.find(v => {
+      return v.selectedOptions.every(so => selectedValues[so.name] === so.value);
+    });
+  }
+
+  function updateModalForVariant(variant) {
+    if (!variant) {
+      cartBtn.textContent = "No Disponible";
+      cartBtn.disabled = true;
+      return;
+    }
+
+    // Update Price UI
+    let priceHTML = `<span style="font-size: 1.2rem; font-weight: 500;">${variant.currency} $${parseFloat(variant.price).toFixed(2)}</span>`;
+    if (variant.compareAtPrice && parseFloat(variant.compareAtPrice) > parseFloat(variant.price)) {
+      priceHTML = `<span style="text-decoration: line-through; color: #888; margin-right: 8px; font-size: 1rem;">${variant.currency} $${parseFloat(variant.compareAtPrice).toFixed(2)}</span> ` + priceHTML;
+    }
+
+    priceHTML += `<p style="font-size: 0.85rem; color: #555; margin-top: 0.5rem; font-weight: 500;">✓ 15% OFF abonando con transferencia o efectivo</p>`;
+    priceEl.innerHTML = priceHTML;
+
+    // Update Button
+    cartBtn.textContent = variant.available ? "Add to Cart" : "Sold Out";
+    cartBtn.disabled = !variant.available;
+
+    // Update Image
+    if (variant.image) {
+      mainImg.src = variant.image.url;
+      mainImg.alt = variant.image.alt || p.title;
+      thumbsWrap.querySelectorAll(".pm-thumb").forEach(t => {
+        if (t.src.includes(variant.image.url)) {
+          t.classList.add("active");
+        } else {
+          t.classList.remove("active");
+        }
+      });
+    }
+
+    // Add to cart action
+    cartBtn.onclick = () => {
+      const variantTitle = variant.title !== "Default Title" ? ` - ${variant.title}` : "";
+      addToCart({
+        variantId: variant.id,
+        title: p.title + variantTitle,
+        price: variant.price,
+        image: variant.image?.url || p.images[0]?.url || ""
+      });
+      cartBtn.textContent = "\u2713 Added!";
+      cartBtn.style.background = "#2d6a4f";
+      cartBtn.style.color = "#fff";
+      cartBtn.style.borderColor = "#2d6a4f";
+      setTimeout(() => {
+        cartBtn.textContent = "Add to Cart";
+        cartBtn.style.background = "";
+        cartBtn.style.color = "";
+        cartBtn.style.borderColor = "";
+      }, 2000);
+    };
+  }
+
+  // Bind change events
+  optionsContainer.querySelectorAll(".pm-option-select").forEach(sel => {
+    sel.addEventListener("change", () => {
+      updateModalForVariant(getSelectedVariant());
+    });
+  });
+
+  // Initial call
+  updateModalForVariant(getSelectedVariant());
 
   // --- Open with animation ---
   overlay.style.display = "flex";

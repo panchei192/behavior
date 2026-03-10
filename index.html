@@ -81,6 +81,17 @@
         </div>
 
         <div class="cart-footer">
+            <div class="cart-shipping-options"
+                style="margin-bottom: 1rem; padding: 1rem; background: #f9f9f9; border-radius: 4px;">
+                <p style="margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem;">Método de entrega:</p>
+                <label
+                    style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                    <input type="radio" name="shipping-method" value="Envío" checked> Envío (a calcular en checkout)
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                    <input type="radio" name="shipping-method" value="Pickup en Tienda"> Pickup en Tienda
+                </label>
+            </div>
             <div class="cart-total-row">
                 <span>Total</span>
                 <span id="cart-total">$0.00</span>
@@ -230,7 +241,8 @@
             <!-- Right: info -->
             <div class="pm-info">
                 <h2 class="pm-title"></h2>
-                <p class="pm-price"></p>
+                <div class="pm-price" style="margin-bottom: 1.5rem;"></div>
+                <div class="pm-options" style="margin-bottom: 1.5rem;"></div>
                 <div class="pm-description"></div>
                 <button class="pm-add-to-cart btn">Add to Cart</button>
             </div>
