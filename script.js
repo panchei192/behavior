@@ -548,7 +548,6 @@ function openProductModal(p) {
       priceHTML = `<span style="text-decoration: line-through; color: #888; margin-right: 8px; font-size: 1rem;">${variant.currency} $${parseFloat(variant.compareAtPrice).toFixed(2)}</span> ` + priceHTML;
     }
 
-    priceHTML += `<p style="font-size: 0.85rem; color: #555; margin-top: 0.5rem; font-weight: 500;">✓ 15% OFF abonando con transferencia o efectivo</p>`;
     priceEl.innerHTML = priceHTML;
 
     // Update Button
