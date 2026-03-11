@@ -107,8 +107,14 @@ async function shopifyFetch(query, variables = {}) {
     },
     body: JSON.stringify({ query, variables }),
   });
+
+  const json = await res.json();
+  if (json.errors) {
+    console.error("GraphQL Errors:", json.errors);
+    throw new Error(json.errors.map(e => e.message).join(" | "));
+  }
   if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-  return res.json();
+  return json;
 }
 
 // ============================================================
@@ -392,13 +398,13 @@ function closeCart() {
 }
 
 // ============================================================
-//  CHECKOUT — creates Shopify checkout & redirects
+//  CHECKOUT — creates Shopify cart & redirects
 // ============================================================
-const CHECKOUT_MUTATION = `
-  mutation checkoutCreate($input: CheckoutCreateInput!) {
-    checkoutCreate(input: $input) {
-      checkout { webUrl }
-      checkoutUserErrors { message field }
+const CART_CREATE_MUTATION = `
+  mutation cartCreate($input: CartInput!) {
+    cartCreate(input: $input) {
+      cart { checkoutUrl }
+      userErrors { message field }
     }
   }
 `;
@@ -413,38 +419,38 @@ async function initiateCheckout() {
   }
 
   try {
-    const lineItems = cart.map((item) => ({
-      variantId: item.variantId,
+    const lines = cart.map((item) => ({
+      merchandiseId: item.variantId,
       quantity: item.quantity,
     }));
 
     const shippingRadio = document.querySelector('input[name="shipping-method"]:checked');
     const shippingMethod = shippingRadio ? shippingRadio.value : "Envío";
 
-    const data = await shopifyFetch(CHECKOUT_MUTATION, {
+    const data = await shopifyFetch(CART_CREATE_MUTATION, {
       input: {
-        lineItems,
-        customAttributes: [
+        lines,
+        attributes: [
           { key: "Metodo de envio", value: shippingMethod }
         ]
       },
     });
 
-    const errors = data?.data?.checkoutCreate?.checkoutUserErrors ?? [];
+    const errors = data?.data?.cartCreate?.userErrors ?? [];
     if (errors.length > 0) {
       alert("Error: " + errors.map((e) => e.message).join(", "));
       return;
     }
 
-    const webUrl = data?.data?.checkoutCreate?.checkout?.webUrl;
+    const webUrl = data?.data?.cartCreate?.cart?.checkoutUrl;
     if (webUrl) {
       window.location.href = webUrl;
     } else {
-      throw new Error("No checkout URL returned");
+      throw new Error("No devolvió URL. Revisa los permisos de lectura/escritura de carritos (unauthenticated_write_cart).");
     }
   } catch (err) {
     console.error("Checkout error:", err);
-    alert("Error al procesar el checkout. Intentá de nuevo.");
+    alert("Error detallado del checkout:\n" + err.message);
   } finally {
     if (checkoutBtn) {
       checkoutBtn.textContent = "Checkout";
