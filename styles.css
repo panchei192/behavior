@@ -137,7 +137,7 @@ nav {
     background-color: var(--secondary-background);
     background-image: url('fotos/fondo.jpeg');
     background-size: cover;
-    background-position: center;
+    background-position: center 35%;
     transition: var(--transition);
 }
 
