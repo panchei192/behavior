@@ -58,9 +58,8 @@ header {
     position: sticky;
     top: 0;
     z-index: 1000;
-    background-image: url('fotos/nuev fondo.jpeg');
-    background-size: cover;
-    background-position: center;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border-color);
     padding: 1rem 0;
 }
@@ -136,7 +135,7 @@ nav {
     align-items: center;
     justify-content: center;
     background-color: var(--secondary-background);
-    background-image: url('fotos/fondo.jpeg');
+    background-image: url('fotos/nuev fondo.jpeg');
     background-size: cover;
     background-position: center 35%;
     transition: var(--transition);
