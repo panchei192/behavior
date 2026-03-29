@@ -19,6 +19,7 @@
 }
 
 body {
+
     font-family: var(--font-body);
     background-color: var(--background-color);
     color: var(--primary-color);
@@ -165,7 +166,6 @@ nav {
     padding: 2rem;
     max-width: 600px;
     color: white;
-    /* Ensure text is white on the image */
 }
 
 .hero h1 {
@@ -174,13 +174,11 @@ nav {
     margin-bottom: 1rem;
     line-height: 1.1;
     color: white;
-    /* Explicitly white */
 }
 
 .hero p {
     font-size: 1.1rem;
     color: rgba(255, 255, 255, 0.9);
-    /* Lighter text for description */
     margin-bottom: 2rem;
 }
 
@@ -295,7 +293,7 @@ footer .footer-instagram:hover {
 
 /* Override About btn for dark bg */
 footer .about-btn {
-    border-color: #444444;
+    border-color: #444444f8;
     color: #cccccc;
 }
 
