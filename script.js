@@ -235,8 +235,9 @@ function renderProducts(grid, products) {
       const hasOptions = variants.length > 1;
       const btnText = hasOptions ? "Select Options" : (available ? "Add to Cart" : "Sold Out");
 
-      // Embed all product data as JSON for the modal
+      // Embed all product data as JSON for the modal/page
       const productData = JSON.stringify({
+        id: node.id,
         title: node.title,
         descriptionHtml: node.descriptionHtml ?? "",
         images: node.images.edges.map(e => ({ url: e.node.url, alt: e.node.altText })),
@@ -294,7 +295,7 @@ function attachCardListeners() {
       const p = JSON.parse(card.dataset.product.replace(/&quot;/g, '"'));
 
       if (p.variants.length > 1) {
-        openProductModal(p);
+        window.open(`product.html?id=${encodeURIComponent(p.id)}`, '_blank');
         return;
       }
 
@@ -317,11 +318,11 @@ function attachCardListeners() {
     });
   });
 
-  // Clicking anywhere on the card opens the product modal
+  // Clicking anywhere on the card opens the product page in a new tab
   document.querySelectorAll(".product-card").forEach((card) => {
     card.addEventListener("click", () => {
       const p = JSON.parse(card.dataset.product.replace(/&quot;/g, '"'));
-      openProductModal(p);
+      window.open(`product.html?id=${encodeURIComponent(p.id)}`, '_blank');
     });
   });
 }
@@ -616,13 +617,201 @@ function closeProductModal() {
 }
 
 // ============================================================
+//  SINGLE PRODUCT PAGE LOGIC
+// ============================================================
+
+async function loadSingleProductPage(productId) {
+  const container = document.getElementById("single-product-container");
+  if (!container) return;
+
+  if (isLikelyBot()) {
+    container.innerHTML = `<p class="no-products">Verificando acceso...</p>`;
+    return;
+  }
+
+  let products = getCachedProducts();
+  if (!products) {
+    container.innerHTML = `<p class="no-products">Cargando producto...</p>`;
+    try {
+      const data = await shopifyFetch(PRODUCTS_QUERY);
+      products = data?.data?.products?.edges ?? [];
+      setCachedProducts(products);
+    } catch (err) {
+      container.innerHTML = `<p class="no-products">Error al cargar el producto.</p>`;
+      return;
+    }
+  }
+
+  const nodeItem = products.find(e => e.node.id === productId);
+  if (!nodeItem) {
+     container.innerHTML = `<p class="no-products">Producto no encontrado.</p>`;
+     return;
+  }
+
+  const p = {
+    id: nodeItem.node.id,
+    title: nodeItem.node.title,
+    descriptionHtml: nodeItem.node.descriptionHtml ?? "",
+    images: nodeItem.node.images.edges.map(e => ({ url: e.node.url, alt: e.node.altText })),
+    options: nodeItem.node.options || [],
+    variants: nodeItem.node.variants.edges.map(v => ({
+      id: v.node.id,
+      title: v.node.title,
+      available: v.node.availableForSale,
+      price: v.node.price.amount,
+      currency: v.node.price.currencyCode,
+      compareAtPrice: v.node.compareAtPrice?.amount ?? null,
+      image: v.node.image ? { url: v.node.image.url, alt: v.node.image.altText } : null,
+      selectedOptions: v.node.selectedOptions
+    }))
+  };
+
+  container.innerHTML = `
+    <div class="product-page-layout">
+        <!-- Left: gallery -->
+        <div class="pm-gallery">
+            <div class="pm-main-img-wrap">
+                <img class="pm-main-img" src="${p.images[0]?.url || 'fotos/placeholder.jpg'}" alt="${p.images[0]?.alt || p.title}" />
+            </div>
+            <div class="pm-thumbs">
+                ${p.images.map((img, i) => `
+                    <img src="${img.url}" alt="${img.alt || p.title}" class="pm-thumb ${i === 0 ? 'active' : ''}" data-idx="${i}">
+                `).join("")}
+            </div>
+        </div>
+
+        <!-- Right: info -->
+        <div class="pm-info">
+            <h2 class="pm-title">${p.title}</h2>
+            <div class="pm-price"></div>
+            <div class="pm-options"></div>
+            <div class="pm-description">${p.descriptionHtml || '<p>Sin descripción.</p>'}</div>
+            <button class="pm-add-to-cart btn">Add to Cart</button>
+        </div>
+    </div>
+  `;
+
+  // Attach interactive gallery and cart behavior similar to the modal
+  const mainImg = container.querySelector(".pm-main-img");
+  const thumbsWrap = container.querySelector(".pm-thumbs");
+
+  thumbsWrap.querySelectorAll(".pm-thumb").forEach(t => {
+    t.addEventListener("click", () => {
+      const idx = +t.dataset.idx;
+      mainImg.src = p.images[idx].url;
+      mainImg.alt = p.images[idx].alt || p.title;
+      thumbsWrap.querySelectorAll(".pm-thumb").forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+    });
+  });
+
+  const optionsContainer = container.querySelector(".pm-options");
+  const priceEl = container.querySelector(".pm-price");
+  const cartBtn = container.querySelector(".pm-add-to-cart");
+
+  if (p.options && p.options.length > 0 && p.options[0].name !== "Title") {
+    let optionsHTML = p.options.map((opt) => `
+        <div class="pm-option-group" style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem;">${opt.name}</label>
+            <select class="pm-option-select" data-option-name="${opt.name}" style="width: 100%; padding: 0.8rem; border: 1px solid #ddd; background: #fff; font-family: inherit; font-size: 0.95rem;">
+                ${opt.values.map(val => `<option value="${val}">${val}</option>`).join("")}
+            </select>
+        </div>
+      `).join("");
+    optionsContainer.innerHTML = optionsHTML;
+    optionsContainer.style.display = "block";
+  } else {
+    optionsContainer.innerHTML = "";
+    optionsContainer.style.display = "none";
+  }
+
+  function getSelectedVariant() {
+    if (!p.options || p.options[0].name === "Title" || p.variants.length === 1) return p.variants[0];
+
+    const selects = Array.from(optionsContainer.querySelectorAll(".pm-option-select"));
+    const selectedValues = selects.reduce((acc, sel) => {
+      acc[sel.dataset.optionName] = sel.value;
+      return acc;
+    }, {});
+
+    return p.variants.find(v => {
+      return v.selectedOptions.every(so => selectedValues[so.name] === so.value);
+    });
+  }
+
+  function updatePageForVariant(variant) {
+    if (!variant) {
+      cartBtn.textContent = "No Disponible";
+      cartBtn.disabled = true;
+      return;
+    }
+
+    let priceHTML = `<span style="font-weight: 500;">${variant.currency} $${parseFloat(variant.price).toFixed(2)}</span>`;
+    if (variant.compareAtPrice && parseFloat(variant.compareAtPrice) > parseFloat(variant.price)) {
+      priceHTML = `<span style="text-decoration: line-through; color: #888; margin-right: 8px; font-size: 1rem;">${variant.currency} $${parseFloat(variant.compareAtPrice).toFixed(2)}</span> ` + priceHTML;
+    }
+    priceEl.innerHTML = priceHTML;
+
+    cartBtn.textContent = variant.available ? "Add to Cart" : "Sold Out";
+    cartBtn.disabled = !variant.available;
+
+    if (variant.image) {
+      mainImg.src = variant.image.url;
+      mainImg.alt = variant.image.alt || p.title;
+      thumbsWrap.querySelectorAll(".pm-thumb").forEach(t => {
+        if (t.src.includes(variant.image.url)) {
+          t.classList.add("active");
+        } else {
+          t.classList.remove("active");
+        }
+      });
+    }
+
+    cartBtn.onclick = () => {
+      const variantTitle = variant.title !== "Default Title" ? ` - ${variant.title}` : "";
+      addToCart({
+        variantId: variant.id,
+        title: p.title + variantTitle,
+        price: variant.price,
+        image: variant.image?.url || p.images[0]?.url || ""
+      });
+      cartBtn.textContent = "✓ Added!";
+      cartBtn.style.background = "#2d6a4f";
+      cartBtn.style.color = "#fff";
+      cartBtn.style.borderColor = "#2d6a4f";
+      setTimeout(() => {
+        cartBtn.textContent = "Add to Cart";
+        cartBtn.style.background = "";
+        cartBtn.style.color = "";
+        cartBtn.style.borderColor = "";
+      }, 2000);
+    };
+  }
+
+  optionsContainer.querySelectorAll(".pm-option-select").forEach(sel => {
+    sel.addEventListener("change", () => {
+      updatePageForVariant(getSelectedVariant());
+    });
+  });
+
+  updatePageForVariant(getSelectedVariant());
+}
+
+// ============================================================
 //  INIT
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
   console.log("BEHAVIOR Store — Shopify Storefront API connected");
 
-  // Load products from Shopify
-  loadProducts();
+  const urlParams = new URLSearchParams(window.location.search);
+  const singleProductId = urlParams.get('id');
+
+  if (document.getElementById("single-product-container") && singleProductId) {
+    loadSingleProductPage(singleProductId);
+  } else {
+    // Load products from Shopify
+    loadProducts();
+  }
 
   // Cart toggle (header icon)
   document.getElementById("cart-icon")?.addEventListener("click", openCart);

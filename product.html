@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BEHAVIOR - Product Detail</title>
+    <meta name="description" content="BEHAVIOR — statement knitwear.">
+
+    <!-- Favicon (logo en pestaña del navegador y Google) -->
+    <link rel="icon" type="image/png" href="fotos/Captura de pantalla 2026-02-18 003257.png">
+    <link rel="apple-touch-icon" href="fotos/Captura de pantalla 2026-02-18 003257.png">
+
+    <!-- Open Graph (imagen en resultados de Google / redes sociales) -->
+    <meta property="og:title" content="BEHAVIOR - statement knitwear">
+    <meta property="og:description" content="BEHAVIOR — statement knitwear.">
+    <meta property="og:image" content="fotos/Captura de pantalla 2026-02-18 003257.png">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="fotos/Captura de pantalla 2026-02-18 003257.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <header>
+        <div class="container">
+            <nav>
+                <a href="index.html" class="logo">BEHAVIOR.</a>
+                <ul class="nav-links">
+                    <li><a href="index.html#products">New Arrivals</a></li>
+                    <li><a href="index.html#products">Collection</a></li>
+                </ul>
+                <div class="nav-icons">
+                    <span style="cursor:pointer; font-size:0.9rem; font-weight:500; letter-spacing:0.5px;">Search</span>
+                    <button id="cart-icon" class="cart-icon-btn" aria-label="Open cart">
+                        Cart (<span id="cart-count">0</span>)
+                    </button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    
+    <style>
+      .product-page-layout { display: flex; gap: 4rem; margin-bottom: 2rem; align-items: flex-start; }
+      .product-page-layout .pm-gallery { flex: 1; padding: 0; background: transparent; display: flex; flex-direction: column; gap: 1rem; position: sticky; top: 100px; }
+      .product-page-layout .pm-main-img-wrap { background: var(--secondary-background); border-radius: 4px; aspect-ratio: 3/4; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+      .product-page-layout .pm-main-img { width: 100%; height: 100%; object-fit: cover; }
+      .product-page-layout .pm-thumbs { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; }
+      .product-page-layout .pm-thumb { width: 60px; height: 80px; object-fit: cover; cursor: pointer; opacity: 0.6; transition: opacity 0.2s, border 0.2s; border: 1px solid transparent; }
+      .product-page-layout .pm-thumb:hover, .product-page-layout .pm-thumb.active { opacity: 1; border-color: var(--primary-color); }
+      .product-page-layout .pm-info { flex: 1; padding: 0; display: flex; flex-direction: column; }
+      .product-page-layout .pm-title { font-family: var(--font-heading); margin-bottom: 0.8rem; font-size: 2.5rem; font-weight: 500;}
+      .product-page-layout .pm-price { font-size: 1.3rem; margin-bottom: 2rem; color: var(--text-light); }
+      .product-page-layout .pm-options { margin-bottom: 2rem; }
+      .product-page-layout .pm-description { font-size: 0.95rem; color: var(--text-light); line-height: 1.8; margin-bottom: 2.5rem; }
+      .product-page-layout .pm-add-to-cart { width: 100%; padding: 1.2rem; font-size: 0.95rem; }
+      
+      @media (max-width: 768px) {
+         .product-page-layout { flex-direction: column; gap: 2rem; }
+         .product-page-layout .pm-gallery { position: static; }
+      }
+    </style>
+    <!-- Single Product Content -->
+    <main id="single-product-container" class="container" style="padding: 4rem 0; min-height: 50vh;">
+        <p class="no-products">Cargando producto...</p>
+    </main>
+    
+
+    <!-- Cart Sidebar Overlay -->
+    <div id="cart-overlay" class="cart-overlay"></div>
+
+    <!-- Cart Sidebar -->
+    <div id="cart-sidebar" class="cart-sidebar">
+        <div class="cart-sidebar-header">
+            <h3>Your Cart</h3>
+            <button id="cart-close-btn" class="cart-close-btn" aria-label="Close cart">✕</button>
+        </div>
+
+        <div id="cart-items" class="cart-items">
+            <p class="cart-empty">Tu carrito está vacío.</p>
+        </div>
+
+        <div class="cart-footer">
+            <div class="cart-shipping-options"
+                style="margin-bottom: 1rem; padding: 1rem; background: #f9f9f9; border-radius: 4px;">
+                <p style="margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem;">Método de entrega:</p>
+                <label
+                    style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                    <input type="radio" name="shipping-method" value="Envío" checked> Envío (a calcular en checkout)
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                    <input type="radio" name="shipping-method" value="Pickup en Tienda"> Pickup en Tienda
+                </label>
+            </div>
+            <div class="cart-total-row">
+                <span>Total</span>
+                <span id="cart-total">$0.00</span>
+            </div>
+            <button id="checkout-btn" class="btn checkout-btn">Checkout</button>
+            <p class="cart-note">Checkout seguro via Shopify ↗</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+
+            <!-- 3 columnas horizontales: About | Contacto | Info -->
+            <div class="footer-top">
+
+                <!-- Columna 1: About Us -->
+                <div class="footer-col">
+                    <h4 class="footer-label">About Us</h4>
+                    <button id="about-open-btn" class="about-btn">Conoce nuestra historia ↗</button>
+                </div>
+
+                <!-- Columna 2: Contacto -->
+                <div class="footer-col">
+                    <h4 class="footer-label">Contacto</h4>
+                    <a href="mailto:BEHAVIOR.UY@GMAIL.COM" class="footer-contact-link">BEHAVIOR.UY@GMAIL.COM</a>
+                    <a href="tel:+59894792417" class="footer-contact-link">+598 94 792 417</a>
+                    <a href="https://www.instagram.com/behavior.uy/" target="_blank" rel="noopener noreferrer"
+                        class="footer-instagram">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                            <circle cx="12" cy="12" r="4" />
+                            <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+                        </svg>
+                        Nuestro Instagram
+                    </a>
+                </div>
+
+                <!-- Columna 3: Info (acordeón) -->
+                <div class="footer-col">
+                    <h4 class="footer-label">Info</h4>
+
+                    <details class="footer-accordion">
+                        <summary>Cambios y Devoluciones</summary>
+                        <div class="footer-accordion-body">
+                            <p>Podés solicitar un cambio o devolución dentro de los <em>10 días posteriores a la
+                                    compra</em>, presentando la <em>boleta o ticket correspondiente</em>.</p>
+                            <p>Las prendas deben encontrarse <em>sin uso, en perfecto estado y con todas sus etiquetas
+                                    originales</em>.</p>
+                            <p>Para realizar un cambio o devolución se tomará como referencia <em>el precio abonado al
+                                    momento de la compra</em>. En caso de haber sido adquirida durante una promoción, se
+                                considerará <em>ese mismo valor</em>.</p>
+                            <p>Debido a que nuestras piezas se producen en <em>series limitadas</em>, no siempre podemos
+                                garantizar la disponibilidad del mismo modelo para un cambio. El cambio podrá realizarse
+                                <em>por cualquier otra prenda disponible en stock</em>. No realizamos <em>producciones
+                                    especiales para gestionar cambios</em>.
+                            </p>
+                        </div>
+                    </details>
+
+                    <details class="footer-accordion">
+                        <summary>Envíos</summary>
+                        <div class="footer-accordion-body">
+                            <p>Ofrecemos envíos dentro de <em>Uruguay</em> y también al <em>exterior</em>.</p>
+                            <p><strong>Montevideo</strong> — costo fijo de <em>$200</em>.</p>
+                            <p><strong>Interior del país</strong> — a través de <em>DAC</em>. El costo desde la agencia
+                                al destino queda a cargo del cliente.</p>
+                            <p><strong>Internacional</strong> — el valor se calcula durante el proceso de compra.</p>
+                            <p>Los artículos <em>disponibles en stock</em> se envían en un plazo estimado de 3 días
+                                <em>hábiles</em> una vez confirmada la compra.
+                            </p>
+                        </div>
+                    </details>
+
+                    <details class="footer-accordion">
+                        <summary>Preventa</summary>
+                        <div class="footer-accordion-body">
+                            <p>Algunas piezas se ofrecen en <em>modalidad de preventa</em>. Elegimos trabajar así porque
+                                creemos en una forma de producir más consciente, donde cada prenda se realiza con tiempo
+                                y dedicación.</p>
+                            <p>Cuando comprás en preventa, la prenda se elabora especialmente para vos. El proceso puede
+                                demorar entre <em>5 a 25 días hábiles</em> desde la confirmación de la compra.</p>
+                        </div>
+                    </details>
+                </div>
+
+            </div>
+
+
+            <!-- Bottom bar -->
+            <div class="footer-bottom">
+                <p>&copy; 2026 BEHAVIOR. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- About Us Modal -->
+    <div id="about-modal-overlay" class="about-modal-overlay" role="dialog" aria-modal="true" aria-label="About Us">
+        <div class="about-modal">
+            <button id="about-close-btn" class="about-modal-close" aria-label="Cerrar">✕</button>
+            <div class="about-modal-content">
+                <h2 class="about-modal-title">About Behavior</h2>
+
+                <p>Behavior es una marca uruguaya de <em>tejido de punto de autor</em>.</p>
+                <p>Exploramos el knitwear como un lenguaje de diseño, trabajando con texturas, estructuras y volúmenes
+                    para crear prendas con identidad propia. Cada pieza nace de una investigación sobre el material, el
+                    gesto del tejido y la forma en que una prenda se relaciona con el cuerpo.</p>
+                <p>Toda nuestra producción se realiza en Uruguay, desde el desarrollo del diseño hasta el tejido final,
+                    trabajando junto a tejedoras locales y apostando por una cadena de producción cercana y consciente.
+                </p>
+                <p>Producimos en <em>series limitadas</em>, priorizando la exclusividad y el valor del proceso detrás de
+                    cada prenda. Creemos en una forma de crear más reflexiva, donde el diseño, el oficio y el tiempo
+                    ocupan un lugar central.</p>
+
+                <div class="about-modal-contact">
+                    <a href="mailto:BEHAVIOR.UY@GMAIL.COM">BEHAVIOR.UY@GMAIL.COM</a>
+                    <a href="tel:+59894792417">+598 94 792 417</a>
+                    <a href="https://www.instagram.com/behavior.uy/" target="_blank" rel="noopener noreferrer"
+                        class="about-modal-ig">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                            <circle cx="12" cy="12" r="4" />
+                            <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+                        </svg>
+                        @behavior.uy
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
